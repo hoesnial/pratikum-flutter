@@ -1,0 +1,11 @@
+child: InkWell(
+  key: const Key('menu_transfer'),
+  onTap: () {
+    Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) => const TransferPage(),
+      ),
+    );
+  },
+)

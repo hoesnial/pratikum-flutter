@@ -1,0 +1,261 @@
+"""Bangun laporan praktikum dari identitas dan screenshot aplikasi sebenarnya."""
+import json
+from pathlib import Path
+from xml.sax.saxutils import escape
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.platypus import Paragraph
+from reportlab.pdfgen import canvas
+from pypdf import PdfReader
+
+ROOT = Path(__file__).resolve().parents[1]
+IDENTITY = json.loads((ROOT / 'docs/identitas.json').read_text())
+SHOTS = ROOT / 'docs/screenshots'
+OUTPUT = ROOT / 'output/pdf/laporan_pertemuan_3_152023088.pdf'
+OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+W, H = A4
+M = 42
+CONTENT = W - 2 * M
+TEAL = colors.HexColor('#0E7490')
+INK = colors.HexColor('#163345')
+MUTED = colors.HexColor('#526579')
+PALE = colors.HexColor('#EEF6F9')
+LINE = colors.HexColor('#DAE4ED')
+C = canvas.Canvas(str(OUTPUT), pagesize=A4)
+C.setTitle('Laporan Praktikum Pertemuan 3 - E-Money - 152023088')
+C.setAuthor(IDENTITY['nama'])
+C.setSubject('Scaffold, layout dasar Flutter, dan Navigator.push()')
+Y = 0
+
+
+def para(text, size=10.5, leading=15, color=INK, space=10, bold=False):
+    global Y
+    style = ParagraphStyle(
+        'body', fontName='Helvetica-Bold' if bold else 'Helvetica',
+        fontSize=size, leading=leading, textColor=color,
+    )
+    p = Paragraph(text, style)
+    _, height = p.wrap(CONTENT, H)
+    if Y - height < 58:
+        raise ValueError(f'Teks melewati area halaman pada y={Y}: {text[:70]}')
+    p.drawOn(C, M, Y - height)
+    Y -= height + space
+
+
+def heading(text):
+    para(escape(text), size=13, leading=18, color=TEAL, bold=True, space=10)
+
+
+def begin(number, title, subtitle=''):
+    global Y
+    C.setFillColor(TEAL)
+    C.rect(0, H - 9, W, 9, fill=1, stroke=0)
+    C.setFont('Helvetica-Bold', 9)
+    C.drawString(M, H - 35, 'E-MONEY / PRAKTIKUM PERTEMUAN 3')
+    C.setFont('Helvetica', 9)
+    C.drawRightString(W - M, H - 35, 'NIM 152023088')
+    C.setFillColor(INK)
+    C.setFont('Helvetica-Bold', 24)
+    C.drawString(M, H - 76, title)
+    Y = H - 94
+    if subtitle:
+        para(escape(subtitle), size=10.5, leading=15, color=MUTED, space=18)
+    else:
+        Y -= 12
+    C.setStrokeColor(LINE)
+    C.line(M, 45, W - M, 45)
+    C.setFillColor(MUTED)
+    C.setFont('Helvetica', 8)
+    C.drawString(M, 30, 'Muhamad Husni Al Muhjiri | 10 Oktober 2026')
+    C.drawRightString(W - M, 30, f'{number} / 7')
+
+
+def table(headers, rows, widths, size=9):
+    global Y
+    style = ParagraphStyle('table', fontName='Helvetica', fontSize=size, leading=size + 4, textColor=INK)
+    for index, row in enumerate([headers] + rows):
+        cells = []
+        height = 0
+        for text, width in zip(row, widths):
+            cell = Paragraph(escape(str(text)), style)
+            _, cell_height = cell.wrap(width - 16, H)
+            cells.append((cell, cell_height))
+            height = max(height, cell_height + 16)
+        if Y - height < 58:
+            raise ValueError('Tabel melewati area halaman')
+        C.setFillColor(PALE if index == 0 else (colors.HexColor('#F8FAFC') if index % 2 == 0 else colors.white))
+        C.rect(M, Y - height, CONTENT, height, fill=1, stroke=0)
+        x = M
+        for (cell, cell_height), width in zip(cells, widths):
+            cell.drawOn(C, x + 8, Y - 8 - cell_height)
+            x += width
+        C.setStrokeColor(LINE)
+        C.line(M, Y - height, W - M, Y - height)
+        Y -= height
+    Y -= 18
+
+
+def pair(left_file, left_label, right_file, right_label):
+    global Y
+    gap = 20
+    width = (CONTENT - gap) / 2
+    height = width * 844 / 390
+    for x, filename, label in [(M, left_file, left_label), (M + width + gap, right_file, right_label)]:
+        C.setFillColor(INK)
+        C.setFont('Helvetica-Bold', 11)
+        C.drawString(x, Y - 4, label)
+        C.setStrokeColor(LINE)
+        C.rect(x - 0.5, Y - 21 - height - 0.5, width + 1, height + 1, fill=0, stroke=1)
+        C.drawImage(str(SHOTS / filename), x, Y - 21 - height, width=width, height=height)
+    Y -= height + 37
+
+
+def code(lines):
+    global Y
+    height = len(lines) * 15 + 24
+    C.setFillColor(PALE)
+    C.roundRect(M, Y - height, CONTENT, height, 10, fill=1, stroke=0)
+    C.setFillColor(INK)
+    C.setFont('Courier', 10)
+    for line in lines:
+        C.drawString(M + 12, Y - 20, line)
+        Y -= 15
+    Y -= 34
+
+
+begin(1, 'Laporan Praktikum', 'Pertemuan 3 - Struktur Halaman, Layout Dasar Flutter, dan Navigasi')
+para('Implementasi Menu E-Money', size=21, leading=27, bold=True, space=18)
+card_top = Y
+C.setFillColor(PALE)
+C.roundRect(M, card_top - 128, CONTENT, 128, 12, fill=1, stroke=0)
+C.setFillColor(INK)
+C.setFont('Helvetica-Bold', 11)
+C.drawString(M + 16, card_top - 25, 'Nama')
+C.drawString(M + 16, card_top - 51, 'NIM')
+C.drawString(M + 16, card_top - 80, 'Kelas')
+C.setFont('Helvetica', 11)
+C.drawString(M + 83, card_top - 25, IDENTITY['nama'])
+C.drawString(M + 83, card_top - 51, IDENTITY['nim'])
+C.acroForm.textfield(
+    name='kelas_mahasiswa', tooltip='Kelas mahasiswa - isi sebelum pengumpulan',
+    x=M + 83, y=card_top - 86, width=290, height=22,
+    value=IDENTITY.get('kelas') or '', maxlen=40,
+    fontName='Helvetica', fontSize=11, textColor=INK,
+    fillColor=colors.white, borderColor=TEAL, borderWidth=1, forceBorder=True,
+)
+C.setFont('Helvetica', 8)
+C.setFillColor(MUTED)
+C.drawString(M + 16, card_top - 110, 'Kolom kelas dapat diisi langsung di PDF sebelum pengumpulan.')
+Y -= 148
+heading('Tujuan dan lingkup')
+para('Melanjutkan project Flutter yang sudah ada dengan halaman utama E-Money, tiga baris menu, dan sembilan halaman tujuan. Fokus praktikum adalah struktur Scaffold, layout dasar, dan perpindahan halaman. Saldo yang terlihat merupakan data demo.')
+table(['Baris', 'Susunan menu', 'Halaman tujuan'], [
+    ['1', 'Transfer, Top Up, Bayar', 'TransferPage, TopUpPage, PaymentPage'],
+    ['2', 'Pulsa, Paket Data, Tagihan', 'PulsaPage, DataPackagePage, BillPage'],
+    ['3', 'Riwayat, Promo, Profil', 'HistoryPage, PromoPage, ProfilePage'],
+], [40, 178, CONTENT - 218])
+heading('Implementasi utama')
+para('Scaffold menyediakan AppBar berisi identitas, Drawer, body dengan SafeArea, FloatingActionButton, dan BottomNavigationBar. Setiap Container menu ditulis langsung menggunakan Row dan Expanded. Seluruh menu dapat diklik melalui InkWell dan memakai Navigator.push().')
+para('Project awal ternyata berisi aplikasi perpustakaan dan tidak memiliki MenuPage E-Money. Kode awal dipertahankan utuh pada lib/legacy/perpustakaan_app.dart dan tetap dapat dibuka melalui Drawer. Tidak ada package atau aset gambar baru untuk aplikasi.', size=10, leading=14, color=MUTED)
+C.showPage()
+
+begin(2, 'Halaman utama dan Drawer', 'Screenshot dari aplikasi yang berjalan di Chrome, viewport 390 x 844.')
+pair('01_menu_page.png', 'MenuPage lengkap', '02_drawer.png', 'Drawer terbuka')
+para('AppBar menampilkan nama lengkap dan NIM. Tiga baris menu, tombol tambah saldo, dan navigasi bawah terlihat dalam satu tampilan. Drawer menyediakan Beranda, Profil, dan akses ke aplikasi perpustakaan sebelumnya.', size=10, leading=14)
+para('Beranda menutup Drawer. Profil menutup Drawer lalu membuka ProfilePage dengan Navigator.push().', size=10, leading=14, color=MUTED)
+C.showPage()
+
+begin(3, 'Halaman Transfer dan Top Up', 'Dua contoh halaman berbeda yang dibuka dari baris pertama.')
+pair('03_transfer.png', 'TransferPage', '04_top_up.png', 'TopUpPage')
+para('Masing-masing halaman memiliki Scaffold, AppBar, SafeArea, Center, ikon, nama halaman, dan keterangan singkat. Tombol kembali pada AppBar maupun tombol Kembali ke Beranda menutup halaman tujuan.', size=10, leading=14)
+para('FloatingActionButton dengan ikon tambah juga membuka TopUpPage melalui Navigator.push().', size=10, leading=14, color=MUTED)
+C.showPage()
+
+begin(4, 'Halaman baris kedua dan ketiga', 'Pulsa dan Profil menjadi bukti navigasi dari dua baris menu yang dilengkapi.')
+pair('06_pulsa.png', 'PulsaPage - baris 2', '11_profil.png', 'ProfilePage - baris 3')
+para('Pulsa memiliki ikon telepon berwarna oranye. Profil menggunakan ikon orang berwarna teal dan menampilkan identitas mahasiswa. Paket Data, Tagihan, Riwayat, serta Promo juga memiliki halaman tersendiri.', size=10, leading=14)
+para('Screenshot seluruh halaman lainnya disertakan pada folder docs/screenshots di project.', size=10, leading=14, color=MUTED)
+C.showPage()
+
+begin(5, 'Implementasi Navigator.push()', 'Potongan kode berasal dari menu Transfer pada lib/pages/menu_page.dart.')
+image_height = CONTENT * 600 / 1050
+C.drawImage(str(SHOTS / '12_navigator_push.png'), M, Y - image_height, width=CONTENT, height=image_height)
+Y -= image_height + 18
+heading('Cara kerja')
+para('1. Pengguna mengetuk menu. InkWell menjalankan callback onTap.<br/>2. Navigator.push() menambahkan MaterialPageRoute ke tumpukan halaman.<br/>3. builder membuat TransferPage. MenuPage tetap berada di bawahnya.<br/>4. Navigator.pop() menutup halaman tujuan dan menampilkan MenuPage lagi.', size=11, leading=17, space=16)
+para('Parameter context menentukan Navigator yang digunakan. Tipe &lt;void&gt; berarti halaman tidak mengembalikan data hasil. Pola yang sama ditulis langsung pada setiap menu dengan class tujuan yang berbeda.', size=10.5, leading=15)
+heading('Kembali dan status navigasi bawah')
+code(['Navigator.pop(context);'])
+para('Riwayat dan Profil pada BottomNavigationBar melakukan push(). StatefulWidget menyimpan currentIndex melalui setState(). Setelah await Navigator.push() selesai, indeks dikembalikan ke Beranda. Pemeriksaan mounted mencegah setState() ketika widget sudah dilepas.', size=10, leading=14)
+C.showPage()
+
+begin(6, 'Komponen dan refleksi', 'Ringkasan fungsi widget untuk menjelaskan implementasi saat asesmen.')
+table(['Komponen', 'Fungsi pada aplikasi'], [
+    ['Scaffold', 'Kerangka halaman Material yang menempatkan komponen utama.'],
+    ['AppBar', 'Bilah atas untuk judul, identitas, dan tombol navigasi.'],
+    ['body', 'Area utama berisi sapaan, saldo demo, dan tiga baris menu.'],
+    ['Drawer', 'Menu samping untuk Beranda, Profil, dan praktikum sebelumnya.'],
+    ['FloatingActionButton', 'Aksi utama berupa tombol tambah yang membuka Top Up.'],
+    ['BottomNavigationBar', 'Akses cepat ke Beranda, Riwayat, dan Profil.'],
+    ['SafeArea', 'Memberi jarak sesuai area sistem agar konten tetap terlihat.'],
+], [135, CONTENT - 135], size=9.5)
+heading('Jawaban refleksi')
+reflections = [
+    ('Apa fungsi Scaffold?', 'Menyediakan struktur halaman Material agar bilah atas, konten, Drawer, tombol aksi, dan navigasi bawah dapat ditempatkan secara teratur.'),
+    ('Apa perbedaan AppBar dan body?', 'AppBar berada di atas untuk judul dan akses navigasi. Body memuat konten utama yang dibaca atau digunakan pengguna.'),
+    ('Apa fungsi Drawer?', 'Menyediakan menu navigasi samping yang dibuka melalui ikon menu atau gestur.'),
+    ('Kapan FloatingActionButton digunakan?', 'Saat ada satu aksi utama yang perlu mudah dijangkau; pada aplikasi ini untuk membuka Top Up.'),
+    ('Apa fungsi BottomNavigationBar?', 'Memudahkan perpindahan ke bagian utama aplikasi melalui item di bagian bawah layar.'),
+    ('Mengapa SafeArea penting?', 'Bentuk layar dan area sistem dapat menutupi konten. SafeArea menggunakan padding perangkat untuk menjaga area konten tetap aman.'),
+    ('Apa akibat mengabaikan area aman?', 'Teks atau tombol dapat tertutup notch, status bar, atau area navigasi sehingga sulit dibaca dan ditekan. Scrolling tetap diperlukan jika konten lebih tinggi dari layar.'),
+]
+for question, answer in reflections:
+    para(f'<b>{escape(question)}</b> {escape(answer)}', size=9.5, leading=13.5, space=8)
+C.showPage()
+
+begin(7, 'Verifikasi dan persiapan asesmen', 'Hasil pemeriksaan implementasi pada 10 Oktober 2026.')
+table(['Pemeriksaan', 'Hasil'], [
+    ['dart format', '12 file implementasi dan test diformat/diperiksa.'],
+    ['flutter analyze', 'No issues found!'],
+    ['flutter test', '7 pengujian lulus. Seluruh sembilan menu dan kembali diuji.'],
+    ['Layout', '320 x 568 (skala teks 1 dan 2), landscape 844 x 390: tanpa overflow pada pengujian.'],
+    ['Chrome', 'Aplikasi berjalan; 14 alur browser berhasil, tanpa error browser yang tercatat.'],
+], [115, CONTENT - 115], size=9.5)
+heading('Perintah menjalankan project')
+code(['flutter pub get', 'flutter analyze', 'flutter test', 'flutter run -d chrome'])
+heading('File yang disertakan')
+para('lib/main.dart berisi entry point dan tema. lib/pages/menu_page.dart berisi struktur utama dan sembilan menu langsung. Sembilan file tujuan berada pada lib/pages/. File legacy menyimpan aplikasi awal. test/widget_test.dart memeriksa navigasi dan layout. Folder docs/ berisi panduan, identitas, screenshot, dan catatan pemeriksaan browser.', size=10, leading=14)
+heading('Latihan demonstrasi')
+para('Jelaskan alur main() sampai MenuPage, fungsi setiap slot Scaffold, pembagian lebar oleh Expanded, dan hubungan InkWell dengan onTap. Demonstrasikan satu menu dari setiap baris, tombol kembali, Drawer, FAB, dan navigasi bawah. Latih perubahan satu judul/warna lalu hot reload dengan r.', size=10, leading=14)
+para('Bukti screenshot pada laporan ini berasal dari Chrome, bukan emulator Android/iOS. Tidak ada emulator/perangkat seluler yang terhubung saat pemeriksaan. Jika pengajar meminta bukti emulator/perangkat, tambahkan screenshot dari perangkat tersebut.', size=9.5, leading=13.5, color=MUTED)
+heading('Referensi')
+for label, url in [
+    ('Materi FluSim Pertemuan 3', 'https://flu-sim.vercel.app/#/meeting/3'),
+    ('Flutter API - Navigator.push()', 'https://api.flutter.dev/flutter/widgets/Navigator/push.html'),
+    ('Flutter API - Scaffold', 'https://api.flutter.dev/flutter/material/Scaffold-class.html'),
+    ('Flutter API - SafeArea', 'https://api.flutter.dev/flutter/widgets/SafeArea-class.html'),
+]:
+    para(f'<link href="{escape(url)}" color="#0E7490">{escape(label)}</link>', size=9, leading=12, space=4)
+C.showPage()
+C.save()
+
+# Form kelas harus tetap interaktif dan mempunyai field kanonis serta widget.
+reader = PdfReader(str(OUTPUT))
+assert len(reader.pages) == 7
+fields = reader.get_fields()
+assert fields and 'kelas_mahasiswa' in fields
+expected_class = IDENTITY.get('kelas') or ''
+assert str(fields['kelas_mahasiswa'].get('/V', '')) == expected_class
+widgets = []
+for page in reader.pages:
+    for ref in page.get('/Annots', []):
+        widget = ref.get_object()
+        if widget.get('/Subtype') == '/Widget':
+            widgets.append(widget)
+assert len(widgets) == 1
+assert str(widgets[0].get('/V', '')) == expected_class
+assert widgets[0].get('/AP') and widgets[0]['/AP'].get('/N')
+assert all(page.extract_text().strip() for page in reader.pages)
+print(f'PDF siap: {OUTPUT} (7 halaman, kolom kelas interaktif terverifikasi).')

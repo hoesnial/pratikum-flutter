@@ -1,0 +1,69 @@
+{
+  "browser": "154.0.8037.99",
+  "url": "http://127.0.0.1:7357/",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "captureMode": "headless",
+  "platform": "Chrome web; ukuran viewport mobile, bukan emulator Android/iOS",
+  "checks": [
+    {
+      "action": "Drawer Beranda",
+      "result": "Drawer tertutup, MenuPage tetap aktif"
+    },
+    {
+      "action": "Menu Transfer",
+      "result": "Halaman tujuan dan kembali berhasil"
+    },
+    {
+      "action": "Menu Top Up",
+      "result": "Halaman tujuan dan kembali berhasil"
+    },
+    {
+      "action": "Menu Bayar",
+      "result": "Halaman tujuan dan kembali berhasil"
+    },
+    {
+      "action": "Menu Pulsa",
+      "result": "Halaman tujuan dan kembali berhasil"
+    },
+    {
+      "action": "Menu Paket Data",
+      "result": "Halaman tujuan dan kembali berhasil"
+    },
+    {
+      "action": "Menu Tagihan",
+      "result": "Halaman tujuan dan kembali berhasil"
+    },
+    {
+      "action": "Menu Riwayat",
+      "result": "Halaman tujuan dan kembali berhasil"
+    },
+    {
+      "action": "Menu Promo",
+      "result": "Halaman tujuan dan kembali berhasil"
+    },
+    {
+      "action": "Menu Profil",
+      "result": "Halaman tujuan dan kembali berhasil"
+    },
+    {
+      "action": "FloatingActionButton",
+      "result": "Top Up dan kembali berhasil"
+    },
+    {
+      "action": "BottomNavigationBar Riwayat",
+      "result": "Halaman tujuan dan kembali berhasil"
+    },
+    {
+      "action": "BottomNavigationBar Profil",
+      "result": "Halaman tujuan dan kembali berhasil"
+    },
+    {
+      "action": "Drawer Profil",
+      "result": "Profil terbuka dan Drawer tertutup setelah kembali"
+    }
+  ],
+  "errors": []
+}
